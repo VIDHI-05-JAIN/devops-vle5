@@ -1,0 +1,66 @@
+---
+- name: Configure DevOps VLE 5 server
+  hosts: webserver
+  become: true
+
+  tasks:
+
+    - name: Update installed packages
+      dnf:
+        name: "*"
+        state: latest
+
+    - name: Install required packages
+      dnf:
+        name:
+          - docker
+          - git
+          - tar
+          - gzip
+        state: present
+
+    - name: Start Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Add ec2-user to docker group
+      user:
+        name: ec2-user
+        groups: docker
+        append: true
+
+    - name: Download kubectl
+      get_url:
+        url: https://dl.k8s.io/release/v1.34.1/bin/linux/amd64/kubectl
+        dest: /usr/local/bin/kubectl
+        mode: "0755"
+
+    - name: Download Minikube
+      get_url:
+        url: https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+        dest: /usr/local/bin/minikube
+        mode: "0755"
+
+    - name: Display Docker version
+      command: docker --version
+      register: docker_version
+      changed_when: false
+
+    - name: Display kubectl version
+      command: kubectl version --client
+      register: kubectl_version
+      changed_when: false
+
+    - name: Display Minikube version
+      command: minikube version
+      register: minikube_version
+      changed_when: false
+
+    - name: Show installed versions
+      debug:
+        msg:
+          - "{{ docker_version.stdout }}"
+          - "{{ kubectl_version.stdout }}"
+          - "{{ minikube_version.stdout }}"
