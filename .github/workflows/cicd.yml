@@ -26,10 +26,14 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ghcr.io/vidhi-05-jain/devops-lab-app:latest ./app
+          docker build \
+            -t ghcr.io/vidhi-05-jain/devops-lab-app:${{ github.sha }} \
+            -t ghcr.io/vidhi-05-jain/devops-lab-app:latest \
+            ./app
 
       - name: Push Docker image
         run: |
+          docker push ghcr.io/vidhi-05-jain/devops-lab-app:${{ github.sha }}
           docker push ghcr.io/vidhi-05-jain/devops-lab-app:latest
 
       - name: Deploy to EC2 Kubernetes
@@ -39,9 +43,15 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            docker pull ghcr.io/vidhi-05-jain/devops-lab-app:${{ github.sha }}
+
+            minikube image load ghcr.io/vidhi-05-jain/devops-lab-app:${{ github.sha }}
+
             kubectl set image deployment/devops-lab-app \
-              devops-lab-app=ghcr.io/vidhi-05-jain/devops-lab-app:latest
+              devops-lab-app=ghcr.io/vidhi-05-jain/devops-lab-app:${{ github.sha }}
 
             kubectl rollout status deployment/devops-lab-app --timeout=180s
 
+            kubectl get deployments
             kubectl get pods
+            kubectl get svc
